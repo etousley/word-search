@@ -29,3 +29,8 @@ tsc readeye.ts
 # Open HTML page in browser
 open index.html
 ```
+
+## TODO list:
+
+* Let users highlight words in letter matrix
+* Add tests
