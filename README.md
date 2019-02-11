@@ -33,4 +33,5 @@ open index.html
 ## TODO list:
 
 * Let users highlight words in letter matrix
+* Handle touch devices
 * Add tests
