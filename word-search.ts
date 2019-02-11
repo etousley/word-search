@@ -192,14 +192,20 @@ function renderLetterMatrix(matrix: string[][]): void {
     const matrixDiv = document.getElementById("ws-matrix") as HTMLDivElement;
     let rowContainer: HTMLDivElement = null;
     let cellContainer: HTMLSpanElement = null;
+    let i: number = 0;
+    let j: number = 0;
+    let row: string[] = null;
 
-    for (let row of matrix) {
+    for (i = 0; i < matrix.length; ++i) {
+        row = matrix[i];
         rowContainer = document.createElement("div");
         rowContainer.className = "ws-row"; 
-        for (let cell of row) {
+        for (j = 0; j < row.length; ++j) {
             cellContainer = document.createElement("div");
             cellContainer.className = "ws-cell";
-            cellContainer.textContent = cell;
+            cellContainer.setAttribute("data-i", i.toString());
+            cellContainer.setAttribute("data-j", j.toString());
+            cellContainer.textContent = row[j];
             rowContainer.appendChild(cellContainer);
         }
         matrixDiv.appendChild(rowContainer);
@@ -230,14 +236,22 @@ function clearHighlights(event: any): void {
  * @returns - void
  */
 function highlightCell(event: any): void {
-    if (event.target.classList.contains("ws-cell")) {
-        event.target.classList.add("highlight");
+    const element = <Element>event.target;
+    if (element.classList.contains("ws-cell")) {
+        clearHighlights(event);
+        element.classList.add("highlight");
         document.onmouseup = stopDrag;
         document.onmousemove = highlightCell;
     }
 }
 
 
+/**
+ * Stop dragging on mouse up.
+ * 
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
 function stopDrag(event: any): void {
     document.onmousemove = null;
 }
