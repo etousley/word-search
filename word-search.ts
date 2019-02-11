@@ -17,6 +17,7 @@ const DIRECTIONS = {
 
 /**
  * Return `n` random choices from an array of `values`.
+ * 
  * @param values - An array.
  * @param n - Number of random choices to return.
  * @param replace - If false, each value can only be chosen once.
@@ -43,6 +44,7 @@ function getRandomChoices(values: any[], n=null, replace=false): any[] {
 }
 /**
  * Given an array of words, generate a matrix of letters containing those words.
+ * 
  * @param words - Array of words.
  * @param directions - Object that maps compass bearings to [dx, dy] values, e.g.: {N: [0, -1]}.
  * @param pad - Number of additional rows and columns to add (to avoid running out of space).
@@ -59,13 +61,10 @@ function getLetterMatrix(words: string[], directions=DIRECTIONS, pad=0): string[
     let wordFits: boolean = false;
     let slotLetters: string[] = [];
     let direction: string = null;
-    let word: string = null;
     let dx: number = null;
     let dy: number = null;
     let i: number = 0;
     let j: number = 0;
-    let w: number = 0;
-    let s: number = 0;
     let l: number = 0;
 
     // Allocate longer words first
@@ -94,14 +93,12 @@ function getLetterMatrix(words: string[], directions=DIRECTIONS, pad=0): string[
         }
     }
 
-    for (w = 0; w < words.length; ++w) {
-        word = words[w];
+    for (let word of words) {
         wordFits = false;
         allowedSlots = slots.filter(slot => slot["length"] >= word.length);
         allowedSlots = getRandomChoices(allowedSlots);  // Shuffle
 
-        for (s = 0; s < allowedSlots.length; ++s) {
-            slot = allowedSlots[s];
+        for (let slot of allowedSlots) {
             i = slot["i"];  // These values are used to write word to matrix
             j = slot["j"];
             dx = slot["dx"];
@@ -143,6 +140,7 @@ function getLetterMatrix(words: string[], directions=DIRECTIONS, pad=0): string[
 /**
  * Get array of matrix values that start in position `[i, j]` 
  * and continue in some direction (e.g: 'NE').
+ * 
  * @param matrix - Array of arrays. 
  * @param i - Row index.
  * @param j - Column index.
@@ -169,6 +167,7 @@ function getSlotValues(
 
 /**
  * Return true if `i` and `j` are indexes inside `matrix`.
+ * 
  * @param matrix - Array of arrays. 
  * @param i - Row index.
  * @param j - Column index.
@@ -183,26 +182,69 @@ function isValidIndex(matrix: any[][], i: number, j: number): boolean {
 }
 
 
+/**
+ * 
+ * 
+ * @param matrix - Array of arrays of letters.
+ * @returns - void
+ */
 function renderLetterMatrix(matrix: string[][]): void {
     const matrixDiv = document.getElementById("ws-matrix") as HTMLDivElement;
-    let i: number = 0;
-    let j: number = 0;
-    let row: string[] = [];
     let rowContainer: HTMLDivElement = null;
     let cellContainer: HTMLSpanElement = null;
 
-    for (i = 0; i < matrix.length; ++i) {
-        row = matrix[i];
+    for (let row of matrix) {
         rowContainer = document.createElement("div");
         rowContainer.className = "ws-row"; 
-        for (j = 0; j < row.length; ++j) {
-            cellContainer = document.createElement("span");
+        for (let cell of row) {
+            cellContainer = document.createElement("div");
             cellContainer.className = "ws-cell";
-            cellContainer.textContent = row[j];
+            cellContainer.textContent = cell;
             rowContainer.appendChild(cellContainer);
         }
         matrixDiv.appendChild(rowContainer);
     }
+}
+
+
+/**
+ * When a highlightable element is clicked, remove highlights from other elements
+ *  and highlight the target. 
+ * 
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
+function clearHighlights(event: any): void {
+    const elements = {...document.getElementsByClassName("highlight")} as object;
+
+    for (let key in elements) {
+        elements[key].classList.remove("highlight");
+    }
+}
+
+
+/**
+ * When dragging on letter containers, if it's a valid direction, 
+ * 
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
+function highlightCell(event: any): void {
+    let elem: HTMLElement = event.target;
+
+    if (elem.classList && elem.classList.contains("ws-cell")) {
+        event.target.classList.add("highlight");
+    }
+    document.onmouseup = stopDrag;
+    document.onmousemove = highlightCell;
+
+}
+
+
+function stopDrag(event: any): void {
+    document.onmouseup = null;
+    document.onmousemove = null;
+
 }
 
 
@@ -212,6 +254,8 @@ function renderLetterMatrix(matrix: string[][]): void {
 function main() {
     const wordListLocation = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-long.txt" as string;
     const wordsPerPuzzle = 5 as number;
+    const clearHighlightsButton = document.getElementById("clear-highlights-button") as HTMLButtonElement;
+    const checkHighlightsButton = document.getElementById("check-highlights-button") as HTMLButtonElement;
 
     console.log("loading words from: " + wordListLocation)
     fetch(wordListLocation)
@@ -220,6 +264,10 @@ function main() {
         .then(wordList => getRandomChoices(wordList, wordsPerPuzzle))
         .then(puzzleWords => getLetterMatrix(puzzleWords))
         .then(matrix => renderLetterMatrix(matrix));
+
+    clearHighlightsButton.addEventListener("click", clearHighlights);
+
+    document.addEventListener("click", highlightCell);
 }
 
 window.onload = main;

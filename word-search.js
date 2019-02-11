@@ -1,6 +1,17 @@
 /**
  * Build a word search puzzle from a newline-separated wordlist.
  */
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var DIRECTIONS = {
     N: [0, -1],
     NE: [1, -1],
@@ -13,6 +24,7 @@ var DIRECTIONS = {
 };
 /**
  * Return `n` random choices from an array of `values`.
+ *
  * @param values - An array.
  * @param n - Number of random choices to return.
  * @param replace - If false, each value can only be chosen once.
@@ -38,6 +50,7 @@ function getRandomChoices(values, n, replace) {
 }
 /**
  * Given an array of words, generate a matrix of letters containing those words.
+ *
  * @param words - Array of words.
  * @param directions - Object that maps compass bearings to [dx, dy] values, e.g.: {N: [0, -1]}.
  * @param pad - Number of additional rows and columns to add (to avoid running out of space).
@@ -57,13 +70,10 @@ function getLetterMatrix(words, directions, pad) {
     var wordFits = false;
     var slotLetters = [];
     var direction = null;
-    var word = null;
     var dx = null;
     var dy = null;
     var i = 0;
     var j = 0;
-    var w = 0;
-    var s = 0;
     var l = 0;
     // Allocate longer words first
     words = words.sort(function (a, b) { return b.length - a.length; });
@@ -88,17 +98,16 @@ function getLetterMatrix(words, directions, pad) {
             }
         }
     }
-    for (w = 0; w < words.length; ++w) {
-        word = words[w];
+    var _loop_1 = function (word) {
         wordFits = false;
         allowedSlots = slots.filter(function (slot) { return slot["length"] >= word.length; });
         allowedSlots = getRandomChoices(allowedSlots); // Shuffle
-        for (s = 0; s < allowedSlots.length; ++s) {
-            slot = allowedSlots[s];
-            i = slot["i"]; // These values are used to write word to matrix
-            j = slot["j"];
-            dx = slot["dx"];
-            dy = slot["dy"];
+        for (var _i = 0, allowedSlots_1 = allowedSlots; _i < allowedSlots_1.length; _i++) {
+            var slot_1 = allowedSlots_1[_i];
+            i = slot_1["i"]; // These values are used to write word to matrix
+            j = slot_1["j"];
+            dx = slot_1["dx"];
+            dy = slot_1["dy"];
             slotLetters = getSlotValues(matrix, i, j, dx, dy, word.length);
             if (slotLetters.every(function (letter) { return letter == " "; })) {
                 wordFits = true;
@@ -116,6 +125,10 @@ function getLetterMatrix(words, directions, pad) {
         else {
             console.log("Couldn't fit word: '" + word + "' into matrix.");
         }
+    };
+    for (var _i = 0, words_1 = words; _i < words_1.length; _i++) {
+        var word = words_1[_i];
+        _loop_1(word);
     }
     // Fill in blanks with random letters
     for (i = 0; i < m; ++i) {
@@ -131,6 +144,7 @@ function getLetterMatrix(words, directions, pad) {
 /**
  * Get array of matrix values that start in position `[i, j]`
  * and continue in some direction (e.g: 'NE').
+ *
  * @param matrix - Array of arrays.
  * @param i - Row index.
  * @param j - Column index.
@@ -153,6 +167,7 @@ function getSlotValues(matrix, i, j, dx, dy, maxLength) {
 }
 /**
  * Return true if `i` and `j` are indexes inside `matrix`.
+ *
  * @param matrix - Array of arrays.
  * @param i - Row index.
  * @param j - Column index.
@@ -164,25 +179,60 @@ function isValidIndex(matrix, i, j) {
     // (row index is inside matrix) && (column index is inside matrix)
     return ((0 <= i) && (i < m) && (0 <= j) && (j < n));
 }
+/**
+ *
+ *
+ * @param matrix - Array of arrays of letters.
+ * @returns - void
+ */
 function renderLetterMatrix(matrix) {
     var matrixDiv = document.getElementById("ws-matrix");
-    var i = 0;
-    var j = 0;
-    var row = [];
     var rowContainer = null;
     var cellContainer = null;
-    for (i = 0; i < matrix.length; ++i) {
-        row = matrix[i];
+    for (var _i = 0, matrix_1 = matrix; _i < matrix_1.length; _i++) {
+        var row = matrix_1[_i];
         rowContainer = document.createElement("div");
         rowContainer.className = "ws-row";
-        for (j = 0; j < row.length; ++j) {
-            cellContainer = document.createElement("span");
+        for (var _a = 0, row_1 = row; _a < row_1.length; _a++) {
+            var cell = row_1[_a];
+            cellContainer = document.createElement("div");
             cellContainer.className = "ws-cell";
-            cellContainer.textContent = row[j];
+            cellContainer.textContent = cell;
             rowContainer.appendChild(cellContainer);
         }
         matrixDiv.appendChild(rowContainer);
     }
+}
+/**
+ * When a highlightable element is clicked, remove highlights from other elements
+ *  and highlight the target.
+ *
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
+function clearHighlights(event) {
+    var elements = __assign({}, document.getElementsByClassName("highlight"));
+    for (var key in elements) {
+        elements[key].classList.remove("highlight");
+    }
+}
+/**
+ * When dragging on letter containers, if it's a valid direction,
+ *
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
+function highlightCell(event) {
+    var elem = event.target;
+    if (elem.classList && elem.classList.contains("ws-cell")) {
+        event.target.classList.add("highlight");
+    }
+    document.onmouseup = stopDrag;
+    document.onmousemove = highlightCell;
+}
+function stopDrag(event) {
+    document.onmouseup = null;
+    document.onmousemove = null;
 }
 /**
  * Main
@@ -190,6 +240,8 @@ function renderLetterMatrix(matrix) {
 function main() {
     var wordListLocation = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-long.txt";
     var wordsPerPuzzle = 5;
+    var clearHighlightsButton = document.getElementById("clear-highlights-button");
+    var checkHighlightsButton = document.getElementById("check-highlights-button");
     console.log("loading words from: " + wordListLocation);
     fetch(wordListLocation)
         .then(function (response) { return response.text(); })
@@ -197,5 +249,7 @@ function main() {
         .then(function (wordList) { return getRandomChoices(wordList, wordsPerPuzzle); })
         .then(function (puzzleWords) { return getLetterMatrix(puzzleWords); })
         .then(function (matrix) { return renderLetterMatrix(matrix); });
+    clearHighlightsButton.addEventListener("click", clearHighlights);
+    document.addEventListener("click", highlightCell);
 }
 window.onload = main;
