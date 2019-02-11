@@ -1,13 +1,29 @@
 
 <style>
-    div {
+    html {
         box-sizing: border-box;
     }
+    *, *:before, *:after {
+        box-sizing: inherit;
+    }
+
+    .ws-row {
+        margin: 0;
+        padding: 0
+    }
+
     .ws-cell {
         display: inline-block;
-        padding: 0.5em 1em;
+        height: 2rem;
+        width: 2rem;
+        vertical-align: middle;
+        text-align: center;
         font-family: "Lucida Console", Monaco, monospace;
         font-size: 1.5em;
+    }
+
+    .highlight {
+        border: 2px solid darkcyan;
     }
 </style>
 
@@ -15,5 +31,7 @@
 <div id="ws-matrix">
     
 </div>
+<button id="clear-highlights-button" title="Clear highlights from grid.">Clear</button>
+<button id="check-highlights-button" title="Check if highlighted letters for a word.">Check</button>
 
 <script src="word-search.js"></script>
