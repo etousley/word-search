@@ -2,7 +2,8 @@
  * Build a word search puzzle from a newline-separated wordlist.
  */
 
-
+const WORD_LIST_URL = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-long.txt" as string;
+const WORDS_PER_PUZZLE = 5 as number;
 const DIRECTIONS = {
     N:  [0, -1],
     NE: [1, -1],
@@ -14,6 +15,11 @@ const DIRECTIONS = {
     NW: [-1, -1]
 } as object;
 
+let wordList: string[] = [];
+let wordLookup: object = {};
+let puzzleWords: string[] = [];
+let foundWords: string[] = [];
+let wsData: object = {};
 
 /**
  * Return `n` random choices from an array of `values`.
@@ -236,13 +242,101 @@ function clearHighlights(event: any): void {
  * @returns - void
  */
 function highlightCell(event: any): void {
-    const element = <Element>event.target;
-    if (element.classList.contains("ws-cell")) {
-        clearHighlights(event);
-        element.classList.add("highlight");
-        document.onmouseup = stopDrag;
-        document.onmousemove = highlightCell;
+    if (event.target.classList.contains("ws-cell")) {
+        event.target.classList.add("highlight");
     }
+}
+
+
+/**
+ * Start highlighting on mouse down.
+ * 
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
+function startDrag(event: any): void {
+    let elem: HTMLElement = event.target;
+    let i: number = null;
+    let j: number = null;
+
+    clearHighlights(event)
+
+    if (elem.classList.contains("ws-cell")) {
+        i = Number(elem.dataset.i);
+        j = Number(elem.dataset.j)
+        wsData = {
+            indexes: [[i, j]],
+            letters: [event.target.textContent],
+            dx: null,
+            dy: null,
+        }
+        document.onmousemove = handleDrag;
+        document.onmouseup = stopDrag;
+        highlightCell(event);
+    }
+}
+
+
+/**
+ * When user drags over an element, decide whether to highlight it.
+ * NOTE: This is not a pure function -- it gets and mutates localStorage["wsData"]
+ * 
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
+function handleDrag(event: any): void {
+    const allowedDeltas = Object.keys(DIRECTIONS).map(key => DIRECTIONS[key]) as number[][];
+    let isAllowedDelta: boolean = false;
+    let i: number = null;
+    let j: number = null;
+    let dy: number = null;
+    let dx: number = null;
+
+    // Check if target element is a cell in the word search
+    if (event.target.classList.contains("ws-cell")) {
+        i = Number(event.target.dataset.i);
+        j = Number(event.target.dataset.j);
+        dy = i - wsData["indexes"].slice(-1)[0][0];  // Current minus previous
+        dx = j - wsData["indexes"].slice(-1)[0][1];
+
+        // Check if the target cell is a neighbor of the last target cell
+        isAllowedDelta = (allowedDeltas.filter(x => equalArrays(x, [dx, dy])).length > 0);
+        if (isAllowedDelta) {
+            // If it's the second highlighted cell, we can now set the deltas
+            if ( (wsData["dx"] == null) && (wsData["dy"] == null) ) {
+                wsData["dx"] = dx;
+                wsData["dy"] = dy;
+            }
+
+            // If target cell follows slope of prior cells, highlight it
+            if ( (dy / dx == wsData["dy"] / wsData["dx"]) ) {
+                wsData["indexes"].push([i, j])
+                wsData["letters"].push(event.target.textContent);
+                highlightCell(event);
+                console.log(JSON.stringify(wsData));
+            }
+        }
+    }    
+}
+
+
+/**
+ * Stupid function to check if two arrays contain the same values.
+ * 
+ * @param a - Array, e.g.: of numbers
+ * @param b - Array, e.g.: of numbers
+ * @returns - `true` if arrays contain same values; otherwise `false`
+ */
+function equalArrays(a: any[], b: any[]): boolean {
+    let i: number = 0;
+
+    for (i = 0; i < a.length; ++i) {
+        if (a[i] != b[i]) {
+            return false;
+        }
+    }
+  
+    return a.length == b.length;
 }
 
 
@@ -253,7 +347,29 @@ function highlightCell(event: any): void {
  * @returns - void
  */
 function stopDrag(event: any): void {
+    let word = wsData["letters"].join("");
+
+    checkWord(word);
     document.onmousemove = null;
+    document.onmouseup = null;
+}
+
+
+// Todo: check if word is in puzzlewords
+function checkWord(word: string): void {
+    if (foundWords.indexOf(word) >= 0) {
+        console.log("you already found: " + word);
+    }
+    else if (puzzleWords.indexOf(word) >= 0) {
+        foundWords.push(word);  // TODO: check if already there
+        console.log("found word: " + word);
+    }
+    else if (word in wordLookup) {
+        foundWords.push(word);  // TODO: check if already there
+        console.log("found extra word: " + word);
+    } else {
+        console.log("not a real word: " + word);
+    }
 }
 
 
@@ -261,22 +377,24 @@ function stopDrag(event: any): void {
  * Main 
  */
 function main() {
-    const wordListLocation = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-long.txt" as string;
-    const wordsPerPuzzle = 5 as number;
-    const clearHighlightsButton = document.getElementById("clear-highlights-button") as HTMLButtonElement;
-    const checkHighlightsButton = document.getElementById("check-highlights-button") as HTMLButtonElement;
-
-    console.log("loading words from: " + wordListLocation)
-    fetch(wordListLocation)
+    fetch(WORD_LIST_URL)
         .then(response => response.text())
+        .then(text => text.toUpperCase())
         .then(text => text.split("\n"))
-        .then(wordList => getRandomChoices(wordList, wordsPerPuzzle))
-        .then(puzzleWords => getLetterMatrix(puzzleWords))
+        .then(words => {
+            wordList = words;  // Set global variable
+            for (let word of wordList) {
+                wordLookup[word] = word;
+            }  // Set global variable
+            return getRandomChoices(wordList, WORDS_PER_PUZZLE);
+        })
+        .then(randomWords => {
+            puzzleWords = randomWords;  // Set global variable
+            return getLetterMatrix(puzzleWords);
+        })
         .then(matrix => renderLetterMatrix(matrix));
 
-    clearHighlightsButton.addEventListener("click", clearHighlights);
-
-    document.addEventListener("mousedown", highlightCell);
+    document.addEventListener("mousedown", startDrag);
 }
 
 window.onload = main;

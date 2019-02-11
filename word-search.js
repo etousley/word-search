@@ -12,6 +12,8 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
+var WORD_LIST_URL = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-long.txt";
+var WORDS_PER_PUZZLE = 5;
 var DIRECTIONS = {
     N: [0, -1],
     NE: [1, -1],
@@ -22,6 +24,11 @@ var DIRECTIONS = {
     W: [-1, 0],
     NW: [-1, -1]
 };
+var wordList = [];
+var wordLookup = {};
+var puzzleWords = [];
+var foundWords = [];
+var wsData = {};
 /**
  * Return `n` random choices from an array of `values`.
  *
@@ -189,15 +196,19 @@ function renderLetterMatrix(matrix) {
     var matrixDiv = document.getElementById("ws-matrix");
     var rowContainer = null;
     var cellContainer = null;
-    for (var _i = 0, matrix_1 = matrix; _i < matrix_1.length; _i++) {
-        var row = matrix_1[_i];
+    var i = 0;
+    var j = 0;
+    var row = null;
+    for (i = 0; i < matrix.length; ++i) {
+        row = matrix[i];
         rowContainer = document.createElement("div");
         rowContainer.className = "ws-row";
-        for (var _a = 0, row_1 = row; _a < row_1.length; _a++) {
-            var cell = row_1[_a];
+        for (j = 0; j < row.length; ++j) {
             cellContainer = document.createElement("div");
             cellContainer.className = "ws-cell";
-            cellContainer.textContent = cell;
+            cellContainer.setAttribute("data-i", i.toString());
+            cellContainer.setAttribute("data-j", j.toString());
+            cellContainer.textContent = row[j];
             rowContainer.appendChild(cellContainer);
         }
         matrixDiv.appendChild(rowContainer);
@@ -225,29 +236,137 @@ function clearHighlights(event) {
 function highlightCell(event) {
     if (event.target.classList.contains("ws-cell")) {
         event.target.classList.add("highlight");
-        document.onmouseup = stopDrag;
-        document.onmousemove = highlightCell;
     }
 }
+/**
+ * Start highlighting on mouse down.
+ *
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
+function startDrag(event) {
+    var elem = event.target;
+    var i = null;
+    var j = null;
+    clearHighlights(event);
+    if (elem.classList.contains("ws-cell")) {
+        i = Number(elem.dataset.i);
+        j = Number(elem.dataset.j);
+        wsData = {
+            indexes: [[i, j]],
+            letters: [event.target.textContent],
+            dx: null,
+            dy: null
+        };
+        document.onmousemove = handleDrag;
+        document.onmouseup = stopDrag;
+        highlightCell(event);
+    }
+}
+/**
+ * When user drags over an element, decide whether to highlight it.
+ * NOTE: This is not a pure function -- it gets and mutates localStorage["wsData"]
+ *
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
+function handleDrag(event) {
+    var allowedDeltas = Object.keys(DIRECTIONS).map(function (key) { return DIRECTIONS[key]; });
+    var isAllowedDelta = false;
+    var i = null;
+    var j = null;
+    var dy = null;
+    var dx = null;
+    // Check if target element is a cell in the word search
+    if (event.target.classList.contains("ws-cell")) {
+        i = Number(event.target.dataset.i);
+        j = Number(event.target.dataset.j);
+        dy = i - wsData["indexes"].slice(-1)[0][0]; // Current minus previous
+        dx = j - wsData["indexes"].slice(-1)[0][1];
+        // Check if the target cell is a neighbor of the last target cell
+        isAllowedDelta = (allowedDeltas.filter(function (x) { return equalArrays(x, [dx, dy]); }).length > 0);
+        if (isAllowedDelta) {
+            // If it's the second highlighted cell, we can now set the deltas
+            if ((wsData["dx"] == null) && (wsData["dy"] == null)) {
+                wsData["dx"] = dx;
+                wsData["dy"] = dy;
+            }
+            // If target cell follows slope of prior cells, highlight it
+            if ((dy / dx == wsData["dy"] / wsData["dx"])) {
+                wsData["indexes"].push([i, j]);
+                wsData["letters"].push(event.target.textContent);
+                highlightCell(event);
+                console.log(JSON.stringify(wsData));
+            }
+        }
+    }
+}
+/**
+ * Stupid function to check if two arrays contain the same values.
+ *
+ * @param a - Array, e.g.: of numbers
+ * @param b - Array, e.g.: of numbers
+ * @returns - `true` if arrays contain same values; otherwise `false`
+ */
+function equalArrays(a, b) {
+    var i = 0;
+    for (i = 0; i < a.length; ++i) {
+        if (a[i] != b[i]) {
+            return false;
+        }
+    }
+    return a.length == b.length;
+}
+/**
+ * Stop dragging on mouse up.
+ *
+ * @param event - A click or touch event targeting an HTML element
+ * @returns - void
+ */
 function stopDrag(event) {
+    var word = wsData["letters"].join("");
+    checkWord(word);
     document.onmousemove = null;
+    document.onmouseup = null;
+}
+// Todo: check if word is in puzzlewords
+function checkWord(word) {
+    if (foundWords.indexOf(word) >= 0) {
+        console.log("you already found: " + word);
+    }
+    else if (puzzleWords.indexOf(word) >= 0) {
+        foundWords.push(word); // TODO: check if already there
+        console.log("found word: " + word);
+    }
+    else if (word in wordLookup) {
+        foundWords.push(word); // TODO: check if already there
+        console.log("found extra word: " + word);
+    }
+    else {
+        console.log("not a real word: " + word);
+    }
 }
 /**
  * Main
  */
 function main() {
-    var wordListLocation = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-long.txt";
-    var wordsPerPuzzle = 5;
-    var clearHighlightsButton = document.getElementById("clear-highlights-button");
-    var checkHighlightsButton = document.getElementById("check-highlights-button");
-    console.log("loading words from: " + wordListLocation);
-    fetch(wordListLocation)
+    fetch(WORD_LIST_URL)
         .then(function (response) { return response.text(); })
+        .then(function (text) { return text.toUpperCase(); })
         .then(function (text) { return text.split("\n"); })
-        .then(function (wordList) { return getRandomChoices(wordList, wordsPerPuzzle); })
-        .then(function (puzzleWords) { return getLetterMatrix(puzzleWords); })
+        .then(function (words) {
+        wordList = words; // Set global variable
+        for (var _i = 0, wordList_1 = wordList; _i < wordList_1.length; _i++) {
+            var word = wordList_1[_i];
+            wordLookup[word] = word;
+        } // Set global variable
+        return getRandomChoices(wordList, WORDS_PER_PUZZLE);
+    })
+        .then(function (randomWords) {
+        puzzleWords = randomWords; // Set global variable
+        return getLetterMatrix(puzzleWords);
+    })
         .then(function (matrix) { return renderLetterMatrix(matrix); });
-    clearHighlightsButton.addEventListener("click", clearHighlights);
-    document.addEventListener("mousedown", highlightCell);
+    document.addEventListener("mousedown", startDrag);
 }
 window.onload = main;
