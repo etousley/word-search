@@ -180,7 +180,7 @@ function isValidIndex(matrix, i, j) {
     return ((0 <= i) && (i < m) && (0 <= j) && (j < n));
 }
 /**
- *
+ * Render a matrix of letters as DOM elements.
  *
  * @param matrix - Array of arrays of letters.
  * @returns - void
@@ -223,15 +223,13 @@ function clearHighlights(event) {
  * @returns - void
  */
 function highlightCell(event) {
-    var elem = event.target;
-    if (elem.classList && elem.classList.contains("ws-cell")) {
+    if (event.target.classList.contains("ws-cell")) {
         event.target.classList.add("highlight");
+        document.onmouseup = stopDrag;
+        document.onmousemove = highlightCell;
     }
-    document.onmouseup = stopDrag;
-    document.onmousemove = highlightCell;
 }
 function stopDrag(event) {
-    document.onmouseup = null;
     document.onmousemove = null;
 }
 /**
@@ -250,6 +248,6 @@ function main() {
         .then(function (puzzleWords) { return getLetterMatrix(puzzleWords); })
         .then(function (matrix) { return renderLetterMatrix(matrix); });
     clearHighlightsButton.addEventListener("click", clearHighlights);
-    document.addEventListener("click", highlightCell);
+    document.addEventListener("mousedown", highlightCell);
 }
 window.onload = main;

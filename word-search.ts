@@ -183,7 +183,7 @@ function isValidIndex(matrix: any[][], i: number, j: number): boolean {
 
 
 /**
- * 
+ * Render a matrix of letters as DOM elements.
  * 
  * @param matrix - Array of arrays of letters.
  * @returns - void
@@ -230,21 +230,16 @@ function clearHighlights(event: any): void {
  * @returns - void
  */
 function highlightCell(event: any): void {
-    let elem: HTMLElement = event.target;
-
-    if (elem.classList && elem.classList.contains("ws-cell")) {
+    if (event.target.classList.contains("ws-cell")) {
         event.target.classList.add("highlight");
+        document.onmouseup = stopDrag;
+        document.onmousemove = highlightCell;
     }
-    document.onmouseup = stopDrag;
-    document.onmousemove = highlightCell;
-
 }
 
 
 function stopDrag(event: any): void {
-    document.onmouseup = null;
     document.onmousemove = null;
-
 }
 
 
@@ -267,7 +262,7 @@ function main() {
 
     clearHighlightsButton.addEventListener("click", clearHighlights);
 
-    document.addEventListener("click", highlightCell);
+    document.addEventListener("mousedown", highlightCell);
 }
 
 window.onload = main;
