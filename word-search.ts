@@ -21,6 +21,7 @@ let puzzleWords: string[] = [];
 let foundWords: string[] = [];
 let wsData: object = {};
 
+
 /**
  * Return `n` random choices from an array of `values`.
  * 
@@ -48,6 +49,8 @@ function getRandomChoices(values: any[], n=null, replace=false): any[] {
 
     return choices;
 }
+
+
 /**
  * Given an array of words, generate a matrix of letters containing those words.
  * 
