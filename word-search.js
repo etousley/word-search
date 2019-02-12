@@ -24,7 +24,7 @@ var DIRECTIONS = {
     W: [-1, 0],
     NW: [-1, -1]
 };
-var puzzleWords = [];
+var hiddenWords = [];
 var foundWords = [];
 var wsData = {};
 var wordLookup = {};
@@ -265,7 +265,7 @@ function startDrag(event) {
 }
 /**
  * When user drags over an element, decide whether to highlight it.
- * NOTE: This is not a pure function -- it gets and mutates localStorage["wsData"]
+ * Hint: This is not a pure function -- it gets and mutates localStorage["wsData"]
  *
  * @param event - A click or touch event targeting an HTML element
  * @returns - void
@@ -325,7 +325,8 @@ function equalArrays(a, b) {
 function stopDrag(event) {
     var word = wsData["letters"].join("");
     checkWord(word);
-    renderWords(foundWords, "found-words-container");
+    renderFoundWords();
+    renderPoints();
     document.onmousemove = null;
     document.onmouseup = null;
 }
@@ -336,35 +337,112 @@ function stopDrag(event) {
  * @returns - void
  */
 function checkWord(word) {
-    if (foundWords.indexOf(word) >= 0) {
-        console.log("you already found: " + word);
+    var complete = true;
+    for (var _i = 0, hiddenWords_1 = hiddenWords; _i < hiddenWords_1.length; _i++) {
+        var word_1 = hiddenWords_1[_i];
+        if (foundWords.indexOf(word_1) == -1) {
+            complete = false;
+            break;
+        }
     }
-    else if (puzzleWords.indexOf(word) >= 0) {
+    if (word.length <= 2) {
+        renderHint("word is too short: " + word);
+    }
+    else if (foundWords.indexOf(word) >= 0) {
+        renderHint("you already found: " + word);
+    }
+    else if (hiddenWords.indexOf(word) >= 0) {
         foundWords.push(word); // TODO: check if already there
-        console.log("found word: " + word);
+        renderHint("found hidden word: " + word);
+        renderHiddenWords();
     }
     else if (word in wordLookup) {
         foundWords.push(word); // TODO: check if already there
-        console.log("found extra word: " + word);
+        renderHint("found extra word: " + word);
     }
     else {
-        console.log("not a real word: " + word);
+        renderHint("not a valid word: " + word);
+    }
+    if (complete) {
+        renderHint("You completed the puzzle!");
     }
 }
 /**
- * Render words to DOM container.
+ * Render words hidden in puzzle to DOM container.
  */
-function renderWords(words, containerId) {
+function renderHiddenWords(words, containerId) {
+    if (words === void 0) { words = hiddenWords; }
+    if (containerId === void 0) { containerId = "hidden-words-container"; }
     var container = document.getElementById(containerId);
+    var wordAnchor = null;
     var wordContainer = null;
     container.innerHTML = "";
     for (var _i = 0, words_2 = words; _i < words_2.length; _i++) {
         var word = words_2[_i];
+        wordAnchor = document.createElement("a");
+        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition";
+        wordAnchor.target = "_blank";
         wordContainer = document.createElement("span");
         wordContainer.className = "word container";
+        if (foundWords.indexOf(word) > -1) {
+            wordContainer.classList.add("text-strikethru");
+        }
         wordContainer.textContent = word;
-        container.appendChild(wordContainer);
+        wordAnchor.appendChild(wordContainer);
+        container.appendChild(wordAnchor);
     }
+}
+/**
+ * Render all found words to DOM container.
+ */
+function renderFoundWords(words, containerId) {
+    if (words === void 0) { words = foundWords; }
+    if (containerId === void 0) { containerId = "found-words-container"; }
+    var container = document.getElementById(containerId);
+    var wordAnchor = null;
+    var wordContainer = null;
+    container.innerHTML = "";
+    for (var _i = 0, words_3 = words; _i < words_3.length; _i++) {
+        var word = words_3[_i];
+        wordAnchor = document.createElement("a");
+        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition";
+        wordAnchor.target = "_blank";
+        wordContainer = document.createElement("span");
+        wordContainer.className = "word container";
+        if (hiddenWords.indexOf(word) > -1) {
+            wordContainer.classList.add("text-bold");
+        }
+        wordContainer.textContent = word;
+        wordAnchor.appendChild(wordContainer);
+        container.appendChild(wordAnchor);
+    }
+}
+/**
+ * Calculate points based on words found so far.
+ */
+function getPoints() {
+    var points = 0;
+    for (var _i = 0, foundWords_1 = foundWords; _i < foundWords_1.length; _i++) {
+        var word = foundWords_1[_i];
+        if (hiddenWords.indexOf(word) > -1) {
+            points += 10;
+        }
+        else {
+            points += 1;
+        }
+    }
+    return points;
+}
+/**
+ * Render point total to DOM.
+ */
+function renderPoints() {
+    var container = document.getElementById("points-container");
+    var points = getPoints();
+    container.textContent = points.toString();
+}
+function renderHint(hint) {
+    document.getElementById("hint-container").textContent = "* " + hint;
 }
 /**
  * Main
@@ -380,9 +458,9 @@ function main() {
         return getRandomChoices(Object.keys(wordLookup), WORDS_PER_PUZZLE);
     })
         .then(function (randomWords) {
-        puzzleWords = randomWords; // Set global variable
-        renderWords(puzzleWords, "puzzle-words-container");
-        return getLetterMatrix(puzzleWords);
+        hiddenWords = randomWords; // Set global variable
+        renderHiddenWords();
+        return getLetterMatrix(hiddenWords);
     })
         .then(function (matrix) { return renderLetterMatrix(matrix); });
     document.addEventListener("mousedown", startDrag);

@@ -283,7 +283,7 @@ function startDrag(event: any): void {
 
 /**
  * When user drags over an element, decide whether to highlight it.
- * NOTE: This is not a pure function -- it gets and mutates localStorage["wsData"]
+ * Hint: This is not a pure function -- it gets and mutates localStorage["wsData"]
  * 
  * @param event - A click or touch event targeting an HTML element
  * @returns - void
@@ -353,7 +353,8 @@ function stopDrag(event: any): void {
     let word = wsData["letters"].join("");
 
     checkWord(word);
-    renderWords(foundWords, "found-words-container");
+    renderFoundWords();
+    renderPoints();
 
     document.onmousemove = null;
     document.onmouseup = null;
@@ -369,6 +370,24 @@ function stopDrag(event: any): void {
 function checkWord(word: string): void {
     let complete: boolean = true;
 
+    if (word.length <= 2) {
+        renderHint("word is too short: " + word);
+    }
+    else if (foundWords.indexOf(word) >= 0) {
+        renderHint("you already found: " + word);
+    }
+    else if (hiddenWords.indexOf(word) >= 0) {
+        foundWords.push(word);  // TODO: check if already there
+        renderHint("found hidden word: " + word);
+        renderHiddenWords();
+    }
+    else if (word in wordLookup) {
+        foundWords.push(word);  // TODO: check if already there
+        renderHint("found extra word: " + word);
+    } else {
+        renderHint("not a valid word: " + word);
+    }
+
     for (let word of hiddenWords) {
         if (foundWords.indexOf(word) == -1) {
             complete = false;
@@ -377,20 +396,7 @@ function checkWord(word: string): void {
     }
 
     if (complete) {
-        console.log("You completed the puzzle!");
-    }
-    else if (foundWords.indexOf(word) >= 0) {
-        console.log("you already found: " + word);
-    }
-    else if (hiddenWords.indexOf(word) >= 0) {
-        foundWords.push(word);  // TODO: check if already there
-        console.log("found word: " + word);
-    }
-    else if (word in wordLookup) {
-        foundWords.push(word);  // TODO: check if already there
-        console.log("found extra word: " + word);
-    } else {
-        console.log("not a real word: " + word);
+        renderHint("You completed the puzzle!");
     }
 }
 
@@ -400,18 +406,25 @@ function checkWord(word: string): void {
  */
 function renderHiddenWords(words=hiddenWords, containerId="hidden-words-container"): void {
     const container = document.getElementById(containerId) as HTMLElement;
+    let wordAnchor: HTMLAnchorElement = null;
     let wordContainer: HTMLSpanElement = null;
 
     container.innerHTML = "";
 
     for (let word of words) {
+        wordAnchor = document.createElement("a");
+        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition";
+        wordAnchor.target = "_blank";
+
         wordContainer = document.createElement("span");
         wordContainer.className = "word container";
         if (foundWords.indexOf(word) > -1) {
             wordContainer.classList.add("text-strikethru");
         }
         wordContainer.textContent = word;
-        container.appendChild(wordContainer);
+
+        wordAnchor.appendChild(wordContainer);
+        container.appendChild(wordAnchor);
     }
 }
 
@@ -429,6 +442,7 @@ function renderFoundWords(words=foundWords, containerId="found-words-container")
     for (let word of words) {
         wordAnchor = document.createElement("a");
         wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition";
+        wordAnchor.target = "_blank";
 
         wordContainer = document.createElement("span");
         wordContainer.className = "word container";
@@ -440,6 +454,40 @@ function renderFoundWords(words=foundWords, containerId="found-words-container")
         wordAnchor.appendChild(wordContainer);
         container.appendChild(wordAnchor);
     }
+}
+
+
+/**
+ * Calculate points based on words found so far.
+ */
+function getPoints(): number {
+    let points: number = 0;
+
+    for (let word of foundWords) {
+        if (hiddenWords.indexOf(word) > -1) {
+            points += 10;
+        } else {
+            points += 1;
+        }
+    }
+
+    return points;
+}
+
+
+/**
+ * Render point total to DOM.
+ */
+function renderPoints(): void {
+    const container = <HTMLElement>document.getElementById("points-container");
+    const points = <number>getPoints();
+
+    container.textContent = points.toString();
+}
+
+
+function renderHint(hint: string): void {
+    document.getElementById("hint-container").textContent = "* " + hint;
 }
 
 
@@ -458,7 +506,7 @@ function main() {
         })
         .then(randomWords => {
             hiddenWords = randomWords;  // Set global variable
-            renderWords(hiddenWords, "hidden-words-container");
+            renderHiddenWords();
             return getLetterMatrix(hiddenWords);
         })
         .then(matrix => renderLetterMatrix(matrix));
