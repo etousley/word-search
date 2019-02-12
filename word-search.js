@@ -12,7 +12,7 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-var WORD_LIST_URL = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-long.txt";
+var WORD_LIST_URL = "https://raw.githubusercontent.com/dwyl/english-words/master/words_dictionary.json";
 var WORDS_PER_PUZZLE = 5;
 var DIRECTIONS = {
     N: [0, -1],
@@ -24,11 +24,10 @@ var DIRECTIONS = {
     W: [-1, 0],
     NW: [-1, -1]
 };
-var wordList = [];
-var wordLookup = {};
 var puzzleWords = [];
 var foundWords = [];
 var wsData = {};
+var wordLookup = {};
 /**
  * Return `n` random choices from an array of `values`.
  *
@@ -193,12 +192,13 @@ function isValidIndex(matrix, i, j) {
  * @returns - void
  */
 function renderLetterMatrix(matrix) {
-    var matrixDiv = document.getElementById("ws-matrix");
+    var matrixContainer = document.getElementById("ws-matrix");
     var rowContainer = null;
     var cellContainer = null;
     var i = 0;
     var j = 0;
     var row = null;
+    matrixContainer.innerHTML = "";
     for (i = 0; i < matrix.length; ++i) {
         row = matrix[i];
         rowContainer = document.createElement("div");
@@ -211,7 +211,7 @@ function renderLetterMatrix(matrix) {
             cellContainer.textContent = row[j];
             rowContainer.appendChild(cellContainer);
         }
-        matrixDiv.appendChild(rowContainer);
+        matrixContainer.appendChild(rowContainer);
     }
 }
 /**
@@ -296,7 +296,6 @@ function handleDrag(event) {
                 wsData["indexes"].push([i, j]);
                 wsData["letters"].push(event.target.textContent);
                 highlightCell(event);
-                console.log(JSON.stringify(wsData));
             }
         }
     }
@@ -326,10 +325,16 @@ function equalArrays(a, b) {
 function stopDrag(event) {
     var word = wsData["letters"].join("");
     checkWord(word);
+    renderWords(foundWords, "found-words-container");
     document.onmousemove = null;
     document.onmouseup = null;
 }
-// Todo: check if word is in puzzlewords
+/**
+ * Check if highlighted word is in puzzle or larger word list.
+ *
+ * @param word
+ * @returns - void
+ */
 function checkWord(word) {
     if (foundWords.indexOf(word) >= 0) {
         console.log("you already found: " + word);
@@ -347,23 +352,36 @@ function checkWord(word) {
     }
 }
 /**
+ * Render words to DOM container.
+ */
+function renderWords(words, containerId) {
+    var container = document.getElementById(containerId);
+    var wordContainer = null;
+    container.innerHTML = "";
+    for (var _i = 0, words_2 = words; _i < words_2.length; _i++) {
+        var word = words_2[_i];
+        wordContainer = document.createElement("span");
+        wordContainer.className = "word container";
+        wordContainer.textContent = word;
+        container.appendChild(wordContainer);
+    }
+}
+/**
  * Main
  */
 function main() {
     fetch(WORD_LIST_URL)
         .then(function (response) { return response.text(); })
         .then(function (text) { return text.toUpperCase(); })
-        .then(function (text) { return text.split("\n"); })
-        .then(function (words) {
-        wordList = words; // Set global variable
-        for (var _i = 0, wordList_1 = wordList; _i < wordList_1.length; _i++) {
-            var word = wordList_1[_i];
-            wordLookup[word] = word;
-        } // Set global variable
-        return getRandomChoices(wordList, WORDS_PER_PUZZLE);
+        .then(function (text) { return JSON.parse(text); })
+        .then(function (tmpwordLookup) {
+        // Set global variables
+        wordLookup = tmpwordLookup;
+        return getRandomChoices(Object.keys(wordLookup), WORDS_PER_PUZZLE);
     })
         .then(function (randomWords) {
         puzzleWords = randomWords; // Set global variable
+        renderWords(puzzleWords, "puzzle-words-container");
         return getLetterMatrix(puzzleWords);
     })
         .then(function (matrix) { return renderLetterMatrix(matrix); });

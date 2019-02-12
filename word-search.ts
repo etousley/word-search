@@ -2,7 +2,7 @@
  * Build a word search puzzle from a newline-separated wordlist.
  */
 
-const WORD_LIST_URL = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears-long.txt" as string;
+const WORD_LIST_URL = "https://raw.githubusercontent.com/dwyl/english-words/master/words_dictionary.json" as string;
 const WORDS_PER_PUZZLE = 5 as number;
 const DIRECTIONS = {
     N:  [0, -1],
@@ -15,11 +15,10 @@ const DIRECTIONS = {
     NW: [-1, -1]
 } as object;
 
-let wordList: string[] = [];
-let wordLookup: object = {};
 let puzzleWords: string[] = [];
 let foundWords: string[] = [];
 let wsData: object = {};
+let wordLookup: object = {};
 
 
 /**
@@ -198,12 +197,14 @@ function isValidIndex(matrix: any[][], i: number, j: number): boolean {
  * @returns - void
  */
 function renderLetterMatrix(matrix: string[][]): void {
-    const matrixDiv = document.getElementById("ws-matrix") as HTMLDivElement;
+    const matrixContainer = document.getElementById("ws-matrix") as HTMLElement;
     let rowContainer: HTMLDivElement = null;
     let cellContainer: HTMLSpanElement = null;
     let i: number = 0;
     let j: number = 0;
     let row: string[] = null;
+
+    matrixContainer.innerHTML = "";
 
     for (i = 0; i < matrix.length; ++i) {
         row = matrix[i];
@@ -217,7 +218,7 @@ function renderLetterMatrix(matrix: string[][]): void {
             cellContainer.textContent = row[j];
             rowContainer.appendChild(cellContainer);
         }
-        matrixDiv.appendChild(rowContainer);
+        matrixContainer.appendChild(rowContainer);
     }
 }
 
@@ -316,7 +317,6 @@ function handleDrag(event: any): void {
                 wsData["indexes"].push([i, j])
                 wsData["letters"].push(event.target.textContent);
                 highlightCell(event);
-                console.log(JSON.stringify(wsData));
             }
         }
     }    
@@ -353,14 +353,33 @@ function stopDrag(event: any): void {
     let word = wsData["letters"].join("");
 
     checkWord(word);
+    renderWords(foundWords, "found-words-container");
+
     document.onmousemove = null;
     document.onmouseup = null;
 }
 
 
-// Todo: check if word is in puzzlewords
+/**
+ * Check if highlighted word is in puzzle or larger word list.
+ * 
+ * @param word 
+ * @returns - void
+ */
 function checkWord(word: string): void {
-    if (foundWords.indexOf(word) >= 0) {
+    let complete: boolean = true;
+
+    for (let word of puzzleWords) {
+        if (foundWords.indexOf(word) == -1) {
+            complete = false;
+            break;
+        }
+    }
+
+    if (complete) {
+        console.log("You completed the puzzle!");
+    }
+    else if (foundWords.indexOf(word) >= 0) {
         console.log("you already found: " + word);
     }
     else if (puzzleWords.indexOf(word) >= 0) {
@@ -377,22 +396,39 @@ function checkWord(word: string): void {
 
 
 /**
+ * Render words to DOM container.
+ */
+function renderWords(words: string[], containerId: string): void {
+    const container = document.getElementById(containerId) as HTMLElement;
+    let wordContainer: HTMLSpanElement = null;
+
+    container.innerHTML = "";
+
+    for (let word of words) {
+        wordContainer = document.createElement("span");
+        wordContainer.className = "word container";
+        wordContainer.textContent = word;
+        container.appendChild(wordContainer);
+    }
+}
+
+
+/**
  * Main 
  */
 function main() {
     fetch(WORD_LIST_URL)
         .then(response => response.text())
         .then(text => text.toUpperCase())
-        .then(text => text.split("\n"))
-        .then(words => {
-            wordList = words;  // Set global variable
-            for (let word of wordList) {
-                wordLookup[word] = word;
-            }  // Set global variable
-            return getRandomChoices(wordList, WORDS_PER_PUZZLE);
+        .then(text => JSON.parse(text))
+        .then(tmpwordLookup => {
+            // Set global variables
+            wordLookup = tmpwordLookup;
+            return getRandomChoices(Object.keys(wordLookup), WORDS_PER_PUZZLE);
         })
         .then(randomWords => {
             puzzleWords = randomWords;  // Set global variable
+            renderWords(puzzleWords, "puzzle-words-container");
             return getLetterMatrix(puzzleWords);
         })
         .then(matrix => renderLetterMatrix(matrix));
