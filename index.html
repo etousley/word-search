@@ -1,36 +1,40 @@
 
 <style>
-    html {
-        box-sizing: border-box;
+    body {
+        font-family: "Lucida Console", Monaco, monospace;
     }
-    *, *:before, *:after {
-        box-sizing: inherit;
-    }
-
     .ws-row {
         margin: 0;
         padding: 0
     }
-
     .ws-cell {
         display: inline-block;
         height: 2rem;
         width: 2rem;
         vertical-align: middle;
         text-align: center;
-        font-family: "Lucida Console", Monaco, monospace;
         font-size: 1.5em;
         user-select: none;  /* Don't let browser highlight; let code do it */
     }
-
     .highlight {
-        border: 2px solid darkcyan;
+        background: yellow;
+    }
+    .container {
+        padding: 5px;
+    }
+    .found-word {
+        text-decoration: line-through;
     }
 </style>
 
-<h1>word search</h1>
-<div id="ws-matrix">
-    
+<h1>WORD SEARCH</h1>
+<div id="ws-matrix" class="container">Loading words...</div>
+<div class=container>
+    <span>Hidden words:</span>
+    <span id="puzzle-words-container" class="container"></span>
 </div>
-
+<div class="container">
+    <span>Found words:</span>
+    <span id="found-words-container" class="container"></span>
+</div>
 <script src="word-search.js"></script>
