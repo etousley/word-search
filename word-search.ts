@@ -15,7 +15,7 @@ const DIRECTIONS = {
     NW: [-1, -1]
 } as object;
 
-let puzzleWords: string[] = [];
+let hiddenWords: string[] = [];
 let foundWords: string[] = [];
 let wsData: object = {};
 let wordLookup: object = {};
@@ -369,7 +369,7 @@ function stopDrag(event: any): void {
 function checkWord(word: string): void {
     let complete: boolean = true;
 
-    for (let word of puzzleWords) {
+    for (let word of hiddenWords) {
         if (foundWords.indexOf(word) == -1) {
             complete = false;
             break;
@@ -382,7 +382,7 @@ function checkWord(word: string): void {
     else if (foundWords.indexOf(word) >= 0) {
         console.log("you already found: " + word);
     }
-    else if (puzzleWords.indexOf(word) >= 0) {
+    else if (hiddenWords.indexOf(word) >= 0) {
         foundWords.push(word);  // TODO: check if already there
         console.log("found word: " + word);
     }
@@ -396,9 +396,9 @@ function checkWord(word: string): void {
 
 
 /**
- * Render words to DOM container.
+ * Render words hidden in puzzle to DOM container.
  */
-function renderWords(words: string[], containerId: string): void {
+function renderHiddenWords(words=hiddenWords, containerId="hidden-words-container"): void {
     const container = document.getElementById(containerId) as HTMLElement;
     let wordContainer: HTMLSpanElement = null;
 
@@ -407,8 +407,38 @@ function renderWords(words: string[], containerId: string): void {
     for (let word of words) {
         wordContainer = document.createElement("span");
         wordContainer.className = "word container";
+        if (foundWords.indexOf(word) > -1) {
+            wordContainer.classList.add("text-strikethru");
+        }
         wordContainer.textContent = word;
         container.appendChild(wordContainer);
+    }
+}
+
+
+/**
+ * Render all found words to DOM container.
+ */
+function renderFoundWords(words=foundWords, containerId="found-words-container"): void {
+    const container = document.getElementById(containerId) as HTMLElement;
+    let wordAnchor: HTMLAnchorElement = null;
+    let wordContainer: HTMLSpanElement = null;
+
+    container.innerHTML = "";
+
+    for (let word of words) {
+        wordAnchor = document.createElement("a");
+        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition";
+
+        wordContainer = document.createElement("span");
+        wordContainer.className = "word container";
+        if (hiddenWords.indexOf(word) > -1) {
+            wordContainer.classList.add("text-bold");
+        }
+        wordContainer.textContent = word;
+
+        wordAnchor.appendChild(wordContainer);
+        container.appendChild(wordAnchor);
     }
 }
 
@@ -427,9 +457,9 @@ function main() {
             return getRandomChoices(Object.keys(wordLookup), WORDS_PER_PUZZLE);
         })
         .then(randomWords => {
-            puzzleWords = randomWords;  // Set global variable
-            renderWords(puzzleWords, "puzzle-words-container");
-            return getLetterMatrix(puzzleWords);
+            hiddenWords = randomWords;  // Set global variable
+            renderWords(hiddenWords, "hidden-words-container");
+            return getLetterMatrix(hiddenWords);
         })
         .then(matrix => renderLetterMatrix(matrix));
 
