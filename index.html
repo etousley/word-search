@@ -1,7 +1,18 @@
 
 <style>
     body {
-        font-family: "Lucida Console", Monaco, monospace;
+        font-family: monospace;
+    }
+    a {
+        text-decoration: none;
+        color: black;
+    }
+    a:hover {
+        text-decoration: inherit;
+        text-decoration: underline;
+    }
+    a:visited {
+        color: black;
     }
     .ws-row {
         margin: 0;
@@ -28,11 +39,14 @@
     .text-bold {
         font-weight: bold;
     }
+    .mt-1 {
+        margin-top: 1rem;
+    }
 </style>
 
 <h1>WORD SEARCH</h1>
 <div id="ws-matrix" class="container">Loading words...</div>
-<div class=container>
+<div class="container mt-1">
     <span>Hidden words:</span>
     <span id="hidden-words-container" class="container"></span>
 </div>
@@ -40,4 +54,9 @@
     <span>Found words:</span>
     <span id="found-words-container" class="container"></span>
 </div>
+<div class="container">
+    <span>Points:</span>
+    <span id="points-container" class="container"></span>
+</div>
+<div id="hint-container" class="container mt-1"></div>
 <script src="word-search.js"></script>
