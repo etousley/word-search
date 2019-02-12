@@ -73,7 +73,6 @@ function getLetterMatrix(words, directions, pad) {
     var allowedSlots = [];
     var slots = [];
     var slot = {};
-    var wordFits = false;
     var slotLetters = [];
     var direction = null;
     var dx = null;
@@ -81,6 +80,7 @@ function getLetterMatrix(words, directions, pad) {
     var i = 0;
     var j = 0;
     var l = 0;
+    var wordFits = false;
     // Allocate longer words first
     words = words.sort(function (a, b) { return b.length - a.length; });
     words = words.map(function (word) { return word.toUpperCase(); });
@@ -105,30 +105,31 @@ function getLetterMatrix(words, directions, pad) {
         }
     }
     var _loop_1 = function (word) {
-        wordFits = false;
         allowedSlots = slots.filter(function (slot) { return slot["length"] >= word.length; });
+        // Keep randomness; weight diagonal slots to correct for reduced chance of fit
         allowedSlots = getRandomChoices(allowedSlots); // Shuffle
+        allowedSlots = allowedSlots.sort(function (a, b) { return slotCompare(a, b); });
         for (var _i = 0, allowedSlots_1 = allowedSlots; _i < allowedSlots_1.length; _i++) {
             var slot_1 = allowedSlots_1[_i];
-            i = slot_1["i"]; // These values are used to write word to matrix
+            i = slot_1["i"]; // These values used to write word to matrix
             j = slot_1["j"];
             dx = slot_1["dx"];
             dy = slot_1["dy"];
             slotLetters = getSlotValues(matrix, i, j, dx, dy, word.length);
-            if (slotLetters.every(function (letter) { return letter == " "; })) {
-                wordFits = true;
-                break;
+            if (Math.abs(dy / dx) == 1) {
+                console.log("word: " + word + ", diagonal slot: " + slotLetters);
+            }
+            wordFits = wordFitsSlot(word, slotLetters);
+            if (wordFits) {
+                for (l = 0; l < word.length; ++l) {
+                    matrix[i][j] = word[l];
+                    i += dy;
+                    j += dx;
+                }
+                break; // Move on to next word
             }
         }
-        // Write word to letter matrix in the chosen slot
-        if (wordFits) {
-            for (l = 0; l < word.length; ++l) {
-                matrix[i][j] = word[l];
-                i += dy;
-                j += dx;
-            }
-        }
-        else {
+        if (wordFits == false) {
             console.log("Couldn't fit word: '" + word + "' into matrix.");
         }
     };
@@ -146,6 +147,32 @@ function getLetterMatrix(words, directions, pad) {
         }
     }
     return matrix;
+}
+// Check if slot is full of blanks (or has letters that fit into target word)
+function wordFitsSlot(word, slotLetters) {
+    var l = 0;
+    for (l = 0; l < word.length; ++l) {
+        if ((slotLetters[l] != " ") && (slotLetters[l] != word[l])) {
+            return false;
+        }
+    }
+    return true;
+}
+function isDiagonal(slot) {
+    return Math.abs(slot["dy"] / slot["dx"]) == 1;
+}
+function slotCompare(a, b) {
+    var aIsDiagonal = isDiagonal(a);
+    var bIsDiagonal = isDiagonal(b);
+    if (aIsDiagonal) {
+        return Math.random() - 0.5;
+    }
+    else if (bIsDiagonal) {
+        return Math.random() + 0.5;
+    }
+    else {
+        return Math.random();
+    }
 }
 /**
  * Get array of matrix values that start in position `[i, j]`
@@ -301,22 +328,6 @@ function handleDrag(event) {
     }
 }
 /**
- * Stupid function to check if two arrays contain the same values.
- *
- * @param a - Array, e.g.: of numbers
- * @param b - Array, e.g.: of numbers
- * @returns - `true` if arrays contain same values; otherwise `false`
- */
-function equalArrays(a, b) {
-    var i = 0;
-    for (i = 0; i < a.length; ++i) {
-        if (a[i] != b[i]) {
-            return false;
-        }
-    }
-    return a.length == b.length;
-}
-/**
  * Stop dragging on mouse up.
  *
  * @param event - A click or touch event targeting an HTML element
@@ -324,7 +335,9 @@ function equalArrays(a, b) {
  */
 function stopDrag(event) {
     var word = wsData["letters"].join("");
+    // let reversedWord: string = wsData["letters"].reverse().join("");
     checkWord(word);
+    // checkWord(reversedWord);
     renderFoundWords();
     renderPoints();
     document.onmousemove = null;
@@ -339,22 +352,22 @@ function stopDrag(event) {
 function checkWord(word) {
     var complete = true;
     if (word.length <= 2) {
-        renderHint("word is too short: " + word);
+        renderHint("Word is too short: " + word);
     }
     else if (foundWords.indexOf(word) >= 0) {
-        renderHint("you already found: " + word);
+        renderHint("You already found: " + word);
     }
     else if (hiddenWords.indexOf(word) >= 0) {
         foundWords.push(word); // TODO: check if already there
-        renderHint("found hidden word: " + word);
+        renderHint("Found hidden word: " + word);
         renderHiddenWords();
     }
     else if (word in wordLookup) {
         foundWords.push(word); // TODO: check if already there
-        renderHint("found extra word: " + word);
+        renderHint("Found extra word: " + word);
     }
     else {
-        renderHint("not a valid word: " + word);
+        renderHint("Not a valid word: " + word);
     }
     for (var _i = 0, hiddenWords_1 = hiddenWords; _i < hiddenWords_1.length; _i++) {
         var word_1 = hiddenWords_1[_i];
@@ -441,8 +454,29 @@ function renderPoints() {
     var points = getPoints();
     container.textContent = points.toString();
 }
+/**
+ * Render a hint to the DOM.
+ *
+ * @param hint - Text or HTML
+ */
 function renderHint(hint) {
-    document.getElementById("hint-container").textContent = "* " + hint;
+    document.getElementById("hint-container").innerHTML = "> " + hint;
+}
+/**
+ * Stupid function to check if two arrays contain the same values.
+ *
+ * @param a - Array, e.g.: of numbers
+ * @param b - Array, e.g.: of numbers
+ * @returns - `true` if arrays contain same values; otherwise `false`
+ */
+function equalArrays(a, b) {
+    var i = 0;
+    for (i = 0; i < a.length; ++i) {
+        if (a[i] != b[i]) {
+            return false;
+        }
+    }
+    return a.length == b.length;
 }
 /**
  * Main
