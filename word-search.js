@@ -338,13 +338,6 @@ function stopDrag(event) {
  */
 function checkWord(word) {
     var complete = true;
-    for (var _i = 0, hiddenWords_1 = hiddenWords; _i < hiddenWords_1.length; _i++) {
-        var word_1 = hiddenWords_1[_i];
-        if (foundWords.indexOf(word_1) == -1) {
-            complete = false;
-            break;
-        }
-    }
     if (word.length <= 2) {
         renderHint("word is too short: " + word);
     }
@@ -362,6 +355,13 @@ function checkWord(word) {
     }
     else {
         renderHint("not a valid word: " + word);
+    }
+    for (var _i = 0, hiddenWords_1 = hiddenWords; _i < hiddenWords_1.length; _i++) {
+        var word_1 = hiddenWords_1[_i];
+        if (foundWords.indexOf(word_1) == -1) {
+            complete = false;
+            break;
+        }
     }
     if (complete) {
         renderHint("You completed the puzzle!");
