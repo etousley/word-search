@@ -56,6 +56,7 @@ function getRandomChoices(values: any[], n=null, replace=false): any[] {
  * @param words - Array of words.
  * @param directions - Object that maps compass bearings to [dx, dy] values, e.g.: {N: [0, -1]}.
  * @param pad - Number of additional rows and columns to add (to avoid running out of space).
+ * @returns - An array of array of single-character strings.
  */
 function getLetterMatrix(words: string[], directions=DIRECTIONS, pad=0): string[][] {
     const allLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("") as string[];
@@ -78,7 +79,7 @@ function getLetterMatrix(words: string[], directions=DIRECTIONS, pad=0): string[
     // Allocate longer words first
     words = words.sort((a, b) => b.length - a.length);
     words = words.map(word => word.toUpperCase());
-    console.log("words: " + words);  // TODO: Delete me
+    // console.log("words: " + words);  // TODO: Delete me
 
     // Build empty matrix
     for (i = 0; i < m; ++i) {
@@ -114,12 +115,7 @@ function getLetterMatrix(words: string[], directions=DIRECTIONS, pad=0): string[
             dx = slot["dx"];
             dy = slot["dy"];
 
-            slotLetters = getSlotValues(matrix, i, j, dx, dy, word.length);
-
-            if (Math.abs(dy / dx) == 1) {
-                console.log("word: " + word + ", diagonal slot: " + slotLetters);
-            }
-            
+            slotLetters = getSlotValues(matrix, i, j, dx, dy, word.length);            
             wordFits = wordFitsSlot(word, slotLetters);
 
             if (wordFits) {
@@ -151,7 +147,13 @@ function getLetterMatrix(words: string[], directions=DIRECTIONS, pad=0): string[
 }
 
 
-// Check if slot is full of blanks (or has letters that fit into target word)
+/**
+ * Check if slot is full of blanks (or has letters that fit into target word).
+ * 
+ * @param word - A string
+ * @param slotLetters - An array of single-character strings.
+ * @returns - True or false
+ */
 function wordFitsSlot(word: string, slotLetters: string[]): boolean {
     let l: number = 0;
 
@@ -164,11 +166,26 @@ function wordFitsSlot(word: string, slotLetters: string[]): boolean {
 }
 
 
+/**
+ * Check if slot's slope (dy / dx) is 1 or -1.
+ * 
+ * @param slot - An object with dx and dy attributes
+ * @returns - True or false.
+ */
 function isDiagonal(slot: object): boolean {
     return Math.abs(slot["dy"] / slot["dx"]) == 1;
 }
 
 
+/**
+ * Function used to sort slots randomly, but with enough of a preference
+ * for diagonal slots to offset the likelihood of them being discarded 
+ * due to overlap with existing words.
+ * 
+ * @param a: An object with dx and dy attributes
+ * @param b: An object with dx and dy attributes
+ * @returns - A number between -0.5 and 1.5
+ */
 function slotCompare(a: object, b: object): number {
     const aIsDiagonal: boolean = isDiagonal(a);
     const bIsDiagonal: boolean = isDiagonal(b);
@@ -334,6 +351,8 @@ function handleDrag(event: any): void {
     let dy: number = null;
     let dx: number = null;
 
+    // TODO: Update logic below to allow selection of contiguous cells in line
+
     // Check if target element is a cell in the word search
     if (event.target.classList.contains("ws-cell")) {
         i = Number(event.target.dataset.i);
@@ -351,7 +370,7 @@ function handleDrag(event: any): void {
             }
 
             // If target cell follows slope of prior cells, highlight it
-            if ( (dy / dx == wsData["dy"] / wsData["dx"]) ) {
+            if ( ( (dy / dx) == (wsData["dy"] / wsData["dx"]) ) ) {
                 wsData["indexes"].push([i, j])
                 wsData["letters"].push(event.target.textContent);
                 highlightCell(event);
@@ -389,23 +408,24 @@ function stopDrag(event: any): void {
  */
 function checkWord(word: string): void {
     let complete: boolean = true;
+    let hints = [];
 
     if (word.length <= 2) {
-        renderHint("Word is too short: " + word);
+        hints.push("Word is too short: " + word);
     }
     else if (foundWords.indexOf(word) >= 0) {
-        renderHint("You already found: " + word);
+        hints.push("You already found: " + word);
     }
     else if (hiddenWords.indexOf(word) >= 0) {
         foundWords.push(word);  // TODO: check if already there
-        renderHint("Found hidden word: " + word);
+        hints.push("Found hidden word: " + word);
         renderHiddenWords();
     }
     else if (word in wordLookup) {
         foundWords.push(word);  // TODO: check if already there
-        renderHint("Found extra word: " + word);
+        hints.push("Found extra word: " + word);
     } else {
-        renderHint("Not a valid word: " + word);
+        hints.push("Not a valid word: " + word);
     }
 
     for (let word of hiddenWords) {
@@ -416,8 +436,10 @@ function checkWord(word: string): void {
     }
 
     if (complete) {
-        renderHint("You completed the puzzle!");
+        hints.push("You completed the puzzle!");
     }
+
+    renderHints(hints);
 }
 
 
@@ -509,10 +531,21 @@ function renderPoints(): void {
 /**
  * Render a hint to the DOM.
  * 
- * @param hint - Text or HTML
+ * @param hints - Array of strings (text or HTML)
+ * @returns - void
  */
-function renderHint(hint: string): void {
-    document.getElementById("hint-container").innerHTML = "> " + hint;
+function renderHints(hints: string[]): void {
+    let hintsContainer: HTMLElement = document.getElementById("hint-container");
+    let hintContainer: HTMLDivElement = null;
+
+    hintsContainer.innerHTML = "";
+
+    for (let hint of hints) {
+        hintContainer = document.createElement("div");
+        hintContainer.className = "hint-container";
+        hintContainer.innerHTML = "> " + hint;
+        hintsContainer.appendChild(hintContainer);
+    }
 }
 
 
