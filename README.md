@@ -32,6 +32,7 @@ open index.html
 
 ## TODO list:
 
-* Let users highlight words in letter matrix
 * Handle touch devices
-* Add tests
+* Maybe add tests
+* Maybe allow bi-directional selection (slope 1/0 vs. 0/1 problem)
+* Maybe do color gradient highlighting for found words

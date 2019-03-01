@@ -14,11 +14,12 @@ const DIRECTIONS = {
     W:  [-1, 0],
     NW: [-1, -1]
 } as object;
+const ALLOWED_SLOPES = [-Infinity, -1, 0, 1, Infinity]
 
 let hiddenWords: string[] = [];
 let foundWords: string[] = [];
 let wsData: object = {};
-let wordLookup: object = {};
+let wsWordLookup: object = {};
 
 
 /**
@@ -295,19 +296,6 @@ function clearHighlights(event: any): void {
 
 
 /**
- * When dragging on letter containers, if it's a valid direction, 
- * 
- * @param event - A click or touch event targeting an HTML element
- * @returns - void
- */
-function highlightCell(event: any): void {
-    if (event.target.classList.contains("ws-cell")) {
-        event.target.classList.add("highlight");
-    }
-}
-
-
-/**
  * Start highlighting on mouse down.
  * 
  * @param event - A click or touch event targeting an HTML element
@@ -326,12 +314,12 @@ function startDrag(event: any): void {
         wsData = {
             indexes: [[i, j]],
             letters: [event.target.textContent],
-            dx: null,
-            dy: null,
+            slope: null,
         }
         document.onmousemove = handleDrag;
         document.onmouseup = stopDrag;
-        highlightCell(event);
+        
+        event.target.classList.add("highlight");
     }
 }
 
@@ -344,37 +332,55 @@ function startDrag(event: any): void {
  * @returns - void
  */
 function handleDrag(event: any): void {
-    const allowedDeltas = Object.keys(DIRECTIONS).map(key => DIRECTIONS[key]) as number[][];
-    let isAllowedDelta: boolean = false;
     let i: number = null;
     let j: number = null;
+    let iPrev: number = null;
+    let jPrev: number = null;
+    let iStep: number = 0;
+    let jStep: number = 0;
     let dy: number = null;
     let dx: number = null;
-
+    let slope: number = null;
+    let step: number = 0;
+    let distance: number = 0;
+    let isCell = event.target.classList.contains("ws-cell");
+    let isHighlighted = event.target.classList.contains("highlight");
+    let cellContainer: HTMLElement = null;
     // TODO: Update logic below to allow selection of contiguous cells in line
 
-    // Check if target element is a cell in the word search
-    if (event.target.classList.contains("ws-cell")) {
+    // Check if target element is a cell in the word search and hasn't already been highlighted
+    if (isCell && !isHighlighted) {
         i = Number(event.target.dataset.i);
         j = Number(event.target.dataset.j);
-        dy = i - wsData["indexes"].slice(-1)[0][0];  // Current minus previous
-        dx = j - wsData["indexes"].slice(-1)[0][1];
+        iPrev = wsData["indexes"].slice(-1)[0][0];
+        jPrev = wsData["indexes"].slice(-1)[0][1];
+        dy = i - iPrev;
+        dx = j - jPrev;
+        slope = (dy / dx);
+            
+        // Note: The first cell has already been highlighted by startDrag()
+        // If it's the second highlighted cell, and the slope is valid, we can set the slope                    
+        // TODO: Figure out how to check for inverse slope???
+        if (ALLOWED_SLOPES.indexOf(slope) >= 0) {
+            if (wsData["indexes"].length == 1) {
+                wsData["slope"] = slope;
+            } 
+            if (slope == wsData["slope"]) {
+                // If highlighted cell isn't adjacent to previous cell, interpolate
+                distance = Math.max(Math.abs(dx), Math.abs(dy));
+                for (step = 1; step <= distance; ++step) {
+                    iStep = iPrev + step * Math.max(-1, Math.min(dy, 1));
+                    jStep = jPrev + step * Math.max(-1, Math.min(dx, 1));
+                    cellContainer = document.querySelector('[data-i="' + iStep + '"][data-j="' + jStep + '"]');
+                    cellContainer.classList.add("highlight");
 
-        // Check if the target cell is a neighbor of the last target cell
-        isAllowedDelta = (allowedDeltas.filter(x => equalArrays(x, [dx, dy])).length > 0);
-        if (isAllowedDelta) {
-            // If it's the second highlighted cell, we can now set the deltas
-            if ( (wsData["dx"] == null) && (wsData["dy"] == null) ) {
-                wsData["dx"] = dx;
-                wsData["dy"] = dy;
-            }
-
-            // If target cell follows slope of prior cells, highlight it
-            if ( ( (dy / dx) == (wsData["dy"] / wsData["dx"]) ) ) {
-                wsData["indexes"].push([i, j])
-                wsData["letters"].push(event.target.textContent);
-                highlightCell(event);
-            }
+                    // Make sure this cell hasn't already been added
+                    if (wsData["indexes"].indexOf([iStep, jStep]) < 0) {
+                        wsData["indexes"].push([iStep, jStep]);
+                        wsData["letters"].push(cellContainer.textContent);
+                    }
+                }
+            }            
         }
     }    
 }
@@ -388,11 +394,11 @@ function handleDrag(event: any): void {
  */
 function stopDrag(event: any): void {
     let word: string = wsData["letters"].join("");
-    // let reversedWord: string = wsData["letters"].reverse().join("");
 
     checkWord(word);
-    // checkWord(reversedWord);
+    renderFoundWord();
     renderFoundWords();
+    renderHiddenWords();
     renderPoints();
 
     document.onmousemove = null;
@@ -419,9 +425,8 @@ function checkWord(word: string): void {
     else if (hiddenWords.indexOf(word) >= 0) {
         foundWords.push(word);  // TODO: check if already there
         hints.push("Found hidden word: " + word);
-        renderHiddenWords();
     }
-    else if (word in wordLookup) {
+    else if (word in wsWordLookup) {
         foundWords.push(word);  // TODO: check if already there
         hints.push("Found extra word: " + word);
     } else {
@@ -455,7 +460,7 @@ function renderHiddenWords(words=hiddenWords, containerId="hidden-words-containe
 
     for (let word of words) {
         wordAnchor = document.createElement("a");
-        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition";
+        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition&norw=1";
         wordAnchor.target = "_blank";
 
         wordContainer = document.createElement("span");
@@ -495,6 +500,29 @@ function renderFoundWords(words=foundWords, containerId="found-words-container")
 
         wordAnchor.appendChild(wordContainer);
         container.appendChild(wordAnchor);
+    }
+
+    
+}
+
+
+/**
+ * Mark the word that was just found in the matrix
+ */
+function renderFoundWord() {
+    let highlightedWord: string = wsData["letters"].join("");
+    let cellContainer: HTMLElement = null;
+    let l: number = 0;
+    let i: number = 0;
+    let j: number = 0; 
+
+    if (hiddenWords.indexOf(highlightedWord) >= 0) {
+        for (l; l < wsData["indexes"].length; ++l) {
+            i = wsData["indexes"][l][0];
+            j = wsData["indexes"][l][1];
+            cellContainer = document.querySelector('[data-i="' + i + '"][data-j="' + j + '"]');
+            cellContainer.classList.add("found");
+        }
     }
 }
 
@@ -550,7 +578,7 @@ function renderHints(hints: string[]): void {
 
 
 /**
- * Stupid function to check if two arrays contain the same values.
+ * Stupid function to check if two stupid arrays contain the same stupid values.
  * 
  * @param a - Array, e.g.: of numbers
  * @param b - Array, e.g.: of numbers
@@ -570,17 +598,51 @@ function equalArrays(a: any[], b: any[]): boolean {
 
 
 /**
+ * Get a promise that resolves to an object of form {"WORD": 1}.
+ * 
+ * @param wordListURL - URL where we can get JSON containing allowed words
+ * @return - Promise
+ */
+function getWordLookup(wordListURL=WORD_LIST_URL): Promise<object> {
+    let key: string = "wsWordLookup";
+    let promise: Promise<object> = null;
+    let savedWordJSON: string = localStorage.getItem(key);
+
+    if (savedWordJSON) {
+        console.log("Loading " + key + " from localStorage...");
+        promise = JSON.parse(savedWordJSON)
+    } else {
+        console.log("Loading " + key + " from " + wordListURL);
+        promise = fetch(WORD_LIST_URL)
+            .then(response => response.text())
+            .then(json => {
+                json = json.toUpperCase();
+                console.log("Got JSON of length: " + json.length);
+                try {
+                    // If the JSON is too long, we can't story it in localStorage
+                    localStorage.setItem(key, json);
+                    console.log("Got JSON of length: " + json.length);
+                } catch(error) {
+                    console.log(error);
+                }
+                return JSON.parse(json);
+            })
+    }
+
+    return promise;
+}
+
+
+/**
  * Main 
+ * 
+ * @returns - void
  */
 function main() {
-    fetch(WORD_LIST_URL)
-        .then(response => response.text())
-        .then(text => text.toUpperCase())
-        .then(text => JSON.parse(text))
-        .then(tmpwordLookup => {
-            // Set global variables
-            wordLookup = tmpwordLookup;
-            return getRandomChoices(Object.keys(wordLookup), WORDS_PER_PUZZLE);
+    getWordLookup()
+        .then(wordLookup => {
+            wsWordLookup = wordLookup;
+            return getRandomChoices(Object.keys(wsWordLookup), WORDS_PER_PUZZLE);
         })
         .then(randomWords => {
             hiddenWords = randomWords;  // Set global variable
