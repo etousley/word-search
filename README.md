@@ -24,7 +24,7 @@ npm install -g typescript
 
 ```bash
 # Compile TypeScript to JavaScript
-tsc readeye.ts
+tsc word-search.ts
 
 # Open HTML page in browser
 open index.html
