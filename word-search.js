@@ -422,7 +422,7 @@ function renderHiddenWords(words, containerId) {
     for (var _i = 0, words_2 = words; _i < words_2.length; _i++) {
         var word = words_2[_i];
         wordAnchor = document.createElement("a");
-        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition&norw=1";
+        wordAnchor.href = 'https://duckduckgo.com/?q="' + word + '"+definition&norw=1';
         wordAnchor.target = "_blank";
         wordContainer = document.createElement("span");
         wordContainer.className = "word container";
@@ -447,7 +447,7 @@ function renderFoundWords(words, containerId) {
     for (var _i = 0, words_3 = words; _i < words_3.length; _i++) {
         var word = words_3[_i];
         wordAnchor = document.createElement("a");
-        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition";
+        wordAnchor.href = 'https://duckduckgo.com/?q="' + word + '"+definition&norw=1';
         wordAnchor.target = "_blank";
         wordContainer = document.createElement("span");
         wordContainer.className = "word container";

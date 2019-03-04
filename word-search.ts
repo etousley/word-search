@@ -460,7 +460,7 @@ function renderHiddenWords(words=hiddenWords, containerId="hidden-words-containe
 
     for (let word of words) {
         wordAnchor = document.createElement("a");
-        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition&norw=1";
+        wordAnchor.href = 'https://duckduckgo.com/?q="' + word + '"+definition&norw=1';
         wordAnchor.target = "_blank";
 
         wordContainer = document.createElement("span");
@@ -488,7 +488,7 @@ function renderFoundWords(words=foundWords, containerId="found-words-container")
 
     for (let word of words) {
         wordAnchor = document.createElement("a");
-        wordAnchor.href = "https://duckduckgo.com/?q=" + word + "+definition";
+        wordAnchor.href = 'https://duckduckgo.com/?q="' + word + '"+definition&norw=1';
         wordAnchor.target = "_blank";
 
         wordContainer = document.createElement("span");
