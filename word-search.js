@@ -25,6 +25,7 @@ var DIRECTIONS = {
     NW: [-1, -1]
 };
 var ALLOWED_SLOPES = [-Infinity, -1, 0, 1, Infinity];
+var MAX_WORD_LENGTH = 12;
 var hiddenWords = [];
 var foundWords = [];
 var wsData = {};
@@ -233,35 +234,6 @@ function isValidIndex(matrix, i, j) {
     return ((0 <= i) && (i < m) && (0 <= j) && (j < n));
 }
 /**
- * Render a matrix of letters as DOM elements.
- *
- * @param matrix - Array of arrays of letters.
- * @returns - void
- */
-function renderLetterMatrix(matrix) {
-    var matrixContainer = document.getElementById("ws-matrix");
-    var rowContainer = null;
-    var cellContainer = null;
-    var i = 0;
-    var j = 0;
-    var row = null;
-    matrixContainer.innerHTML = "";
-    for (i = 0; i < matrix.length; ++i) {
-        row = matrix[i];
-        rowContainer = document.createElement("div");
-        rowContainer.className = "ws-row";
-        for (j = 0; j < row.length; ++j) {
-            cellContainer = document.createElement("div");
-            cellContainer.className = "ws-cell";
-            cellContainer.setAttribute("data-i", i.toString());
-            cellContainer.setAttribute("data-j", j.toString());
-            cellContainer.textContent = row[j];
-            rowContainer.appendChild(cellContainer);
-        }
-        matrixContainer.appendChild(rowContainer);
-    }
-}
-/**
  * When a highlightable element is clicked, remove highlights from other elements
  *  and highlight the target.
  *
@@ -295,6 +267,8 @@ function startDrag(event) {
         };
         document.onmousemove = handleDrag;
         document.onmouseup = stopDrag;
+        document.ontouchmove = handleDrag;
+        document.ontouchend = stopDrag;
         event.target.classList.add("highlight");
     }
 }
@@ -317,14 +291,17 @@ function handleDrag(event) {
     var slope = null;
     var step = 0;
     var distance = 0;
-    var isCell = event.target.classList.contains("ws-cell");
-    var isHighlighted = event.target.classList.contains("highlight");
+    var touch = null;
+    var target = event.target;
     var cellContainer = null;
-    // TODO: Update logic below to allow selection of contiguous cells in line
+    if (event.type.startsWith("touch")) {
+        touch = event.touches[0];
+        target = document.elementFromPoint(touch.clientX, touch.clientY);
+    }
     // Check if target element is a cell in the word search and hasn't already been highlighted
-    if (isCell && !isHighlighted) {
-        i = Number(event.target.dataset.i);
-        j = Number(event.target.dataset.j);
+    if (target.classList.contains("ws-cell") && !target.classList.contains("highlight")) {
+        i = Number(target.dataset.i);
+        j = Number(target.dataset.j);
         iPrev = wsData["indexes"].slice(-1)[0][0];
         jPrev = wsData["indexes"].slice(-1)[0][1];
         dy = i - iPrev;
@@ -370,6 +347,8 @@ function stopDrag(event) {
     renderPoints();
     document.onmousemove = null;
     document.onmouseup = null;
+    document.ontouchmove = null;
+    document.ontouchend = null;
 }
 /**
  * Check if highlighted word is in puzzle or larger word list.
@@ -387,11 +366,11 @@ function checkWord(word) {
         hints.push("You already found: " + word);
     }
     else if (hiddenWords.indexOf(word) >= 0) {
-        foundWords.push(word); // TODO: check if already there
+        foundWords.push(word);
         hints.push("Found hidden word: " + word);
     }
     else if (word in wsWordLookup) {
-        foundWords.push(word); // TODO: check if already there
+        foundWords.push(word);
         hints.push("Found extra word: " + word);
     }
     else {
@@ -410,6 +389,51 @@ function checkWord(word) {
     renderHints(hints);
 }
 /**
+ * Calculate points based on words found so far.
+ */
+function getPoints() {
+    var points = 0;
+    for (var _i = 0, foundWords_1 = foundWords; _i < foundWords_1.length; _i++) {
+        var word = foundWords_1[_i];
+        if (hiddenWords.indexOf(word) > -1) {
+            points += 10;
+        }
+        else {
+            points += 1;
+        }
+    }
+    return points;
+}
+/**
+ * Render a matrix of letters as DOM elements.
+ *
+ * @param matrix - Array of arrays of letters.
+ * @returns - void
+ */
+function renderLetterMatrix(matrix) {
+    var matrixContainer = document.getElementById("ws-matrix");
+    var rowContainer = null;
+    var cellContainer = null;
+    var i = 0;
+    var j = 0;
+    var row = null;
+    matrixContainer.innerHTML = "";
+    for (i = 0; i < matrix.length; ++i) {
+        row = matrix[i];
+        rowContainer = document.createElement("div");
+        rowContainer.className = "ws-row";
+        for (j = 0; j < row.length; ++j) {
+            cellContainer = document.createElement("div");
+            cellContainer.className = "ws-cell";
+            cellContainer.setAttribute("data-i", i.toString());
+            cellContainer.setAttribute("data-j", j.toString());
+            cellContainer.textContent = row[j];
+            rowContainer.appendChild(cellContainer);
+        }
+        matrixContainer.appendChild(rowContainer);
+    }
+}
+/**
  * Render words hidden in puzzle to DOM container.
  */
 function renderHiddenWords(words, containerId) {
@@ -417,20 +441,19 @@ function renderHiddenWords(words, containerId) {
     if (containerId === void 0) { containerId = "hidden-words-container"; }
     var container = document.getElementById(containerId);
     var wordAnchor = null;
-    var wordContainer = null;
+    // let maxWordLength: number = Math.max(...words.map(word => word.length));
+    // Make sure rows of letter matrix don't get too long and wrap
     container.innerHTML = "";
     for (var _i = 0, words_2 = words; _i < words_2.length; _i++) {
         var word = words_2[_i];
         wordAnchor = document.createElement("a");
+        wordAnchor.className = "d-inline-flex container";
         wordAnchor.href = 'https://duckduckgo.com/?q="' + word + '"+definition&norw=1';
         wordAnchor.target = "_blank";
-        wordContainer = document.createElement("span");
-        wordContainer.className = "word container";
         if (foundWords.indexOf(word) > -1) {
-            wordContainer.classList.add("text-strikethru");
+            wordAnchor.classList.add("text-strikethru");
         }
-        wordContainer.textContent = word;
-        wordAnchor.appendChild(wordContainer);
+        wordAnchor.textContent = word;
         container.appendChild(wordAnchor);
     }
 }
@@ -450,7 +473,7 @@ function renderFoundWords(words, containerId) {
         wordAnchor.href = 'https://duckduckgo.com/?q="' + word + '"+definition&norw=1';
         wordAnchor.target = "_blank";
         wordContainer = document.createElement("span");
-        wordContainer.className = "word container";
+        wordContainer.className = "d-inline-flex container";
         if (hiddenWords.indexOf(word) > -1) {
             wordContainer.classList.add("text-bold");
         }
@@ -476,22 +499,6 @@ function renderFoundWord() {
             cellContainer.classList.add("found");
         }
     }
-}
-/**
- * Calculate points based on words found so far.
- */
-function getPoints() {
-    var points = 0;
-    for (var _i = 0, foundWords_1 = foundWords; _i < foundWords_1.length; _i++) {
-        var word = foundWords_1[_i];
-        if (hiddenWords.indexOf(word) > -1) {
-            points += 10;
-        }
-        else {
-            points += 1;
-        }
-    }
-    return points;
 }
 /**
  * Render point total to DOM.
@@ -578,6 +585,17 @@ function getWordLookup(wordListURL) {
 function main() {
     getWordLookup()
         .then(function (wordLookup) {
+        // Ignore words that are too long to fit on a single row
+        var filteredLookup = {};
+        var word = null;
+        for (word in wordLookup) {
+            if (word.length <= MAX_WORD_LENGTH) {
+                filteredLookup[word] = 1;
+            }
+        }
+        return filteredLookup;
+    })
+        .then(function (wordLookup) {
         wsWordLookup = wordLookup;
         return getRandomChoices(Object.keys(wsWordLookup), WORDS_PER_PUZZLE);
     })
@@ -588,5 +606,6 @@ function main() {
     })
         .then(function (matrix) { return renderLetterMatrix(matrix); });
     document.addEventListener("mousedown", startDrag);
+    document.addEventListener("touchstart", startDrag);
 }
 window.onload = main;

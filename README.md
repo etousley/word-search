@@ -32,7 +32,4 @@ open index.html
 
 ## TODO list:
 
-* Handle touch devices
 * Maybe add tests
-* Maybe allow bi-directional selection (slope 1/0 vs. 0/1 problem)
-* Maybe do color gradient highlighting for found words
