@@ -1,5 +1,8 @@
 # word-search
 
+~[screenshot](screenshot.png)
+
+
 ## About:
 
 Generate and complete word-search puzzles in your browser.
