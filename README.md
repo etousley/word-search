@@ -1,6 +1,6 @@
 # word-search
 
-~[screenshot](screenshot.png)
+![screenshot](screenshot.png)
 
 
 ## About:
