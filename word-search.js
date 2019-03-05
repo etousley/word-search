@@ -1,5 +1,6 @@
 /**
- * Build a word search puzzle from a newline-separated wordlist.
+ * Build word search puzzle using random words
+ * Allow user to highlight words to earn points.
  */
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
@@ -14,6 +15,7 @@ var __assign = (this && this.__assign) || function () {
 };
 var WORD_LIST_URL = "https://raw.githubusercontent.com/dwyl/english-words/master/words_dictionary.json";
 var WORDS_PER_PUZZLE = 5;
+var ALLOWED_SLOPES = [-Infinity, -1, 0, 1, Infinity];
 var DIRECTIONS = {
     N: [0, -1],
     NE: [1, -1],
@@ -24,8 +26,6 @@ var DIRECTIONS = {
     W: [-1, 0],
     NW: [-1, -1]
 };
-var ALLOWED_SLOPES = [-Infinity, -1, 0, 1, Infinity];
-var MAX_WORD_LENGTH = 12;
 var hiddenWords = [];
 var foundWords = [];
 var wsData = {};
@@ -583,17 +583,26 @@ function getWordLookup(wordListURL) {
  * @returns - void
  */
 function main() {
+    var maxWordLength = null;
+    if (window.innerWidth <= 360) {
+        console.log("Small screen detected; using words of length <= " + maxWordLength);
+        maxWordLength = 12;
+    }
     getWordLookup()
         .then(function (wordLookup) {
-        // Ignore words that are too long to fit on a single row
-        var filteredLookup = {};
         var word = null;
-        for (word in wordLookup) {
-            if (word.length <= MAX_WORD_LENGTH) {
-                filteredLookup[word] = 1;
+        var filteredLookup = {};
+        if (maxWordLength) {
+            for (word in wordLookup) {
+                if (word.length <= maxWordLength) {
+                    filteredLookup[word] = 1;
+                }
             }
+            return filteredLookup;
         }
-        return filteredLookup;
+        else {
+            return wordLookup;
+        }
     })
         .then(function (wordLookup) {
         wsWordLookup = wordLookup;

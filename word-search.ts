@@ -1,9 +1,12 @@
 /**
- * Build a word search puzzle from a newline-separated wordlist.
+ * Build word search puzzle using random words
+ * Allow user to highlight words to earn points.
  */
+
 
 const WORD_LIST_URL: string = "https://raw.githubusercontent.com/dwyl/english-words/master/words_dictionary.json";
 const WORDS_PER_PUZZLE: number = 5;
+const ALLOWED_SLOPES: number[] = [-Infinity, -1, 0, 1, Infinity];
 const DIRECTIONS: object = {
     N:  [0, -1],
     NE: [1, -1],
@@ -14,9 +17,6 @@ const DIRECTIONS: object = {
     W:  [-1, 0],
     NW: [-1, -1]
 };
-const ALLOWED_SLOPES: number[] = [-Infinity, -1, 0, 1, Infinity];
-const MAX_WORD_LENGTH: number = 12;
-
 
 let hiddenWords: string[] = [];
 let foundWords: string[] = [];
@@ -649,17 +649,27 @@ function getWordLookup(wordListURL=WORD_LIST_URL): Promise<object> {
  * @returns - void
  */
 function main() {
+    let maxWordLength: number = null;
+
+    if (window.innerWidth <= 360) {
+        console.log("Small screen detected; using words of length <= " + maxWordLength);
+        maxWordLength = 12;
+    }
+
     getWordLookup()
         .then(wordLookup => {
-            // Ignore words that are too long to fit on a single row
-            let filteredLookup: object = {};
             let word: string = null;
-            for (word in wordLookup) {
-                if (word.length <= MAX_WORD_LENGTH) {
-                    filteredLookup[word] = 1;
+            let filteredLookup: object = {};
+            if (maxWordLength) {
+                for (word in wordLookup) {
+                    if (word.length <= maxWordLength) {
+                        filteredLookup[word] = 1;
+                    }
                 }
+                return filteredLookup;
+            } else {
+                return wordLookup;
             }
-            return filteredLookup;
         })
         .then(wordLookup => {
             wsWordLookup = wordLookup;
