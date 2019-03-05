@@ -623,7 +623,7 @@ function getWordLookup(wordListURL=WORD_LIST_URL): Promise<object> {
                     localStorage.setItem(key, json);
                     console.log("Got JSON of length: " + json.length);
                 } catch(error) {
-                    console.log(error);
+                    console.log("Caught: " + error);
                 }
                 return JSON.parse(json);
             })
