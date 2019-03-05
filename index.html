@@ -1,68 +1,75 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+        <style>
+            body {
+                font-family: monospace;
+            }
+            a {
+                text-decoration: none;
+                color: black;
+            }
+            a:hover {
+                text-decoration: inherit;
+                text-decoration: underline;
+            }
+            a:visited {
+                color: black;
+            }
+            .ws-row {
+                margin: 0;
+                padding: 0
+            }
+            .ws-cell {
+                display: inline-flex;
+                margin: 0.1rem;
+                height: 1.8rem;
+                width: 1.8rem;
+                justify-content: center;
+                align-items: center;
+                font-size: 1.5em;
+                user-select: none;  /* Don't let browser highlight; let code do it */
+            }
+            .highlight {
+                border-radius: 50%;
+                box-shadow: 0 0 10px 1px royalblue;
+                color: royalblue;
+            }
+            .found {
+                color: royalblue;
+            }
+            .container {
+                padding: 5px;
+            }
+            .text-strikethru {
+                text-decoration: line-through;
+            }
+            .text-bold {
+                font-weight: bold;
+            }
+            .mt-1 {
+                margin-top: 1rem;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>WORD SEARCH</h1>
+        <div id="ws-matrix" class="container">Loading words...</div>
+        <div class="container mt-1">
+            <span>Hidden words:</span>
+            <span id="hidden-words-container" class="container"></span>
+        </div>
+        <div class="container">
+            <span>Found words:</span>
+            <span id="found-words-container" class="container"></span>
+        </div>
+        <div class="container">
+            <span>Points:</span>
+            <span id="points-container" class="container"></span>
+        </div>
+        <div id="hint-container" class="container mt-1"></div>
+        <script src="word-search.js"></script>
+    </body>
+</html>
 
-<style>
-    body {
-        font-family: monospace;
-    }
-    a {
-        text-decoration: none;
-        color: black;
-    }
-    a:hover {
-        text-decoration: inherit;
-        text-decoration: underline;
-    }
-    a:visited {
-        color: black;
-    }
-    .ws-row {
-        margin: 0;
-        padding: 0
-    }
-    .ws-cell {
-        display: inline-flex;
-        margin: 0.1rem;
-        height: 1.8rem;
-        width: 1.8rem;
-        justify-content: center;
-        align-items: center;
-        font-size: 1.5em;
-        user-select: none;  /* Don't let browser highlight; let code do it */
-    }
-    .highlight {
-        border-radius: 50%;
-        box-shadow: 0 0 10px 1px royalblue;
-        color: royalblue;
-    }
-    .found {
-        color: royalblue;
-    }
-    .container {
-        padding: 5px;
-    }
-    .text-strikethru {
-        text-decoration: line-through;
-    }
-    .text-bold {
-        font-weight: bold;
-    }
-    .mt-1 {
-        margin-top: 1rem;
-    }
-</style>
 
-<h1>WORD SEARCH</h1>
-<div id="ws-matrix" class="container">Loading words...</div>
-<div class="container mt-1">
-    <span>Hidden words:</span>
-    <span id="hidden-words-container" class="container"></span>
-</div>
-<div class="container">
-    <span>Found words:</span>
-    <span id="found-words-container" class="container"></span>
-</div>
-<div class="container">
-    <span>Points:</span>
-    <span id="points-container" class="container"></span>
-</div>
-<div id="hint-container" class="container mt-1"></div>
-<script src="word-search.js"></script>
