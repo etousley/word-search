@@ -584,14 +584,16 @@ function getWordLookup(wordListURL) {
  */
 function main() {
     var maxWordLength = null;
+    var word = null;
+    var filteredLookup = {};
+    var randomWords = [];
     if (window.innerWidth <= 360) {
         console.log("Small screen detected; using words of length <= " + maxWordLength);
         maxWordLength = 12;
     }
     getWordLookup()
         .then(function (wordLookup) {
-        var word = null;
-        var filteredLookup = {};
+        wsWordLookup = wordLookup; // Set global variable
         if (maxWordLength) {
             for (word in wordLookup) {
                 if (word.length <= maxWordLength) {
@@ -604,10 +606,8 @@ function main() {
             return wordLookup;
         }
     })
-        .then(function (wordLookup) {
-        wsWordLookup = wordLookup;
-        return getRandomChoices(Object.keys(wsWordLookup), WORDS_PER_PUZZLE);
-    })
+        .then(function (wordLookup) { return getRandomChoices(Object.keys(wordLookup), WORDS_PER_PUZZLE); })
+        .then(function (randomWords) { return randomWords.sort(function (a, b) { return b.length - a.length; }); })
         .then(function (randomWords) {
         hiddenWords = randomWords; // Set global variable
         renderHiddenWords();

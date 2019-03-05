@@ -650,6 +650,9 @@ function getWordLookup(wordListURL=WORD_LIST_URL): Promise<object> {
  */
 function main() {
     let maxWordLength: number = null;
+    let word: string = null;
+    let filteredLookup: object = {};
+    let randomWords: string[] = [];
 
     if (window.innerWidth <= 360) {
         console.log("Small screen detected; using words of length <= " + maxWordLength);
@@ -658,8 +661,7 @@ function main() {
 
     getWordLookup()
         .then(wordLookup => {
-            let word: string = null;
-            let filteredLookup: object = {};
+            wsWordLookup = wordLookup;  // Set global variable
             if (maxWordLength) {
                 for (word in wordLookup) {
                     if (word.length <= maxWordLength) {
@@ -671,10 +673,8 @@ function main() {
                 return wordLookup;
             }
         })
-        .then(wordLookup => {
-            wsWordLookup = wordLookup;
-            return getRandomChoices(Object.keys(wsWordLookup), WORDS_PER_PUZZLE);
-        })
+        .then(wordLookup => getRandomChoices(Object.keys(wordLookup), WORDS_PER_PUZZLE))
+        .then(randomWords => randomWords.sort((a, b) => b.length - a.length))
         .then(randomWords => {
             hiddenWords = randomWords;  // Set global variable
             renderHiddenWords();
