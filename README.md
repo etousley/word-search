@@ -1,7 +1,5 @@
 # word-search
 
-## 🚧 WORK IN PROGRESS 🚧
-
 ## About:
 
 Generate and complete word-search puzzles in your browser.
